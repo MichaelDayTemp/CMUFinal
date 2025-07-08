@@ -5,22 +5,28 @@ from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
 # Mock models (replace these with actual predictors or data sources)
-
+# Just find a way to pull data from sources or copy data from sources into here
+#very important
 def predict_fluorescence_intensity(seq):
     return 0
 
+#important
 def predict_quantum_yield(seq):
     return 0
 
+#not important
 def predict_solubility(seq):
     return 0
 
+#important
 def predict_stability(seq):
     return 0
 
+#not important
 def calculate_cai(seq, reference_table='Ecoli'):
     return 0
 
+#not important
 def predict_folding_confidence(seq):
     return 0
 
