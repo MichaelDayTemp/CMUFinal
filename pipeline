@@ -57,7 +57,7 @@ def evaluate_gfp_variants(sequences):
 
     return sorted_gfp
 
-# 🧪 Example usage
+# Example usage
 if __name__ == "__main__":
     # Simulated amino acid sequences
     gfp_variants = [
