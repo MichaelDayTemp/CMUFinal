@@ -3,75 +3,166 @@ import numpy as np
 from Bio.SeqUtils import CodonAdaptationIndex
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
+from Bio.Blast import NCBIWWW, NCBIXML
 
-# Mock models (replace these with actual predictors or data sources)
-# Just find a way to pull data from sources or copy data from sources into here
-#very important
-def predict_fluorescence_intensity(seq):
-    return 0
+#prints out the 5 best gfp sequences 
+if __name__ == "__main__":
 
-#important
-def predict_quantum_yield(seq):
-    return 0
+    #base sequence is for Aequorea victoria (first amino acid)
+    baseSequence = "MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTTLTYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITHGMDELYK"
 
-#not important
-def predict_solubility(seq):
-    return 0
+    newMutantSequences = []
+    numMutants = 100 #number of mutations for each sequence
+    numGenerations = 50 #number of generations
+    cutoff = 5 #amount of surviving mutant sequences
+    for i in range(5):
+        newMutantSequences = append(generate_mutants(baseSequence, numMutants)
 
-#important
-def predict_stability(seq):
-    return 0
+    #gets actual protein name from sequence (if known)
+    for sequence in newMutantSequences {
+        # Run BLAST (this can take time and requires internet)
+        result_handle = NCBIWWW.qblast("blastp", "nr", sequence)
+        blast_record = NCBIXML.read(result_handle)
+        top_hit = blast_record.alignments[0]
+        Mutant_gfp_names.append(top_hit.hit_def)
 
-#not important
-def calculate_cai(seq, reference_table='Ecoli'):
-    return 0
+    #gets the corresponding fittness for each mutant
+    df_results = evaluate_gfp_variants(Mutant_gfp_names)
 
-#not important
-def predict_folding_confidence(seq):
-    return 0
+    #array of the mutant names with the top 5 highest fittnesses
+    top_keys = get_top_keys(df_results, cutoff)
+    
+    #repeats process with the keys for numGenerations amount of times
+    for i in range(numGenerations):
+        
+        for sequence := topKeys:
+            newMutantSequences.append(generate_mutants(sequence, numMutants)
+    
+        for sequence in newMutantSequences:
+            # Run BLAST (this can take time and requires internet)
+            result_handle = NCBIWWW.qblast("blastp", "nr", sequence)
+            blast_record = NCBIXML.read(result_handle)
+            top_hit = blast_record.alignments[0]
+            Mutant_gfp_names.append(top_hit.hit_def)
+    
+        df_results = evaluate_gfp_variants(Mutant_gfp_names)
+        top_keys = get_top_keys(df_results, cutoff)
+        Mutant_gfp_names.empty()
+        newMutantSequences.empty()
 
-def normalize(val, weights, minVals, maxVals):
-    fittness = 0.0
-    for i in range(len(val)):
-        if minVals[i] == maxVals[i]:
-            fittness += 0.0  # Avoid division by zero
-        else:
-            fittness += (weights[i] * ((val - minVals[i]) / (maxVals[i] - minVals[i])))
-    return fittness
+    #prints out best resulting mutant names
+    for i in range(cutoff):
+        println(i + ": " top_keys[i])
+        
+
+
+#takes in a fp and returns the properties from fpbase as a map
+def get_fp_properties_from_name(fp_name):
+    import requests
+
+    query = """
+    {{
+      fluorescentProtein(name: "{fp_name}") {{
+        name
+        brightness
+        quantumYield
+        extinctionCoefficient
+        excitationMax
+        emissionMax
+      }}
+    }}
+    """
+
+    response = requests.post(
+        'https://www.fpbase.org/graphql/',
+        json={'query': query}
+    )
+
+    return response.json()['data']['fluorescentProtein']
+
 
 #input: amino acid sequences
 #output: map of coresponding fittnesses to those sequences
-def evaluate_gfp_variants(sequences):
-    fittnessVals = []
-    weights = {0.4, 0.15, 0.1, 0.15, 0.1, 0.1}  #fl, qy, so, st, cai, fc
-    minVals = {0.0, 0.0, 0.3, 60.0, 0.1, 0.6}   #fl, qy, so, st, cai, fc
-    maxVals = {100.0, 1.0, 1.0, 90.0, 1.0, 1.0} #fl, qy, so, st, cai, fc
+def evaluate_gfp_variants(fpVarients):
+    brightnessWeight = 0.5
 
-    #calculates fittness
-    for seq in tqdm(sequences):
-        features = {predict_fluorescence_intensity(seq),
-                    predict_quantum_yield(seq),
-                    predict_solubility(seq),
-                    predict_stability(seq),
-                    calculate_cai(seq[:180]),  # first 180 nt for CAI
-                    predict_folding_confidence(seq)}
-        normalized = normalize(features, weights, minVals, maxVals)
-
-        fittnessVals.append(normalized)
-
-    gfp_map = dict(zip(sequences, fittnessVals))
-    sorted_gfp = sorted(gfp_map.items(), key=lambda item: item[1], reverse=True)
-
-    return sorted_gfp
-
-# Example usage
-if __name__ == "__main__":
-    # Simulated amino acid sequences
-    gfp_variants = [
-        "MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVTT",  # EGFP
-        "MSKGEELFTGVVPILVELDGDKNGHKFSVSGEGEGDATYGKLTLKFINYVGKLPVPWPTLVTT",  # sfGFP
-        "MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDAAFYKILTQKLIYVGGKLPVPWPTLVTT",  # mutant
-    ]
+    fittnesses = dict[string, float] #key stirng, val float
+    for fpVarient in fpVarients:
+        fpProperties = get_fp_properties_from_name(fpVarient)
+        fittness = fpProperties['brightness'] * brightnessWeight
+        if fp['excitationMax'] > x || fp['emissionMax'] < y || fp['aggregation'] != z || fp['maturation'] != ab: #penalties/constraints
+            fittness -= 1000.0
+        fittnesses[fpVarient] = fittness
     
-    df_results = evaluate_gfp_variants(gfp_variants)
+
+
+    return fittnesses
+
+"""
+Args:
+    data: Dictionary with string keys and integer values.
+    x: Number of top entries to return.
+
+Returns:
+    List of keys with the top x highest values.
+"""
+def get_top_keys(data: dict[str, int], x: int) -> list[str]:
+    # Sort items by value in descending order
+    sorted_items = sorted(data.items(), key=lambda item: item[1], reverse=True)
+
+    # Extract just the keys of the top x items
+    top_keys = [key for key, _ in sorted_items[:x]]
     
+    return top_keys
+import random
+
+"""
+Applies a realistic mix of mutations (substitution, insertion, deletion)
+to a protein sequence.
+"""
+def mutate_sequence(seq: str) -> str:
+    # Standard amino acids
+    AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
+    seq = list(seq)
+    i = 0
+    while i < len(seq):
+        mutation_chance = random.random()
+        if mutation_chance < 0.05:
+            # Deletion
+            del seq[i]
+            continue  # skip incrementing i to avoid skipping next position
+        elif mutation_chance < 0.10:
+            # Insertion
+            seq.insert(i, random.choice(AMINO_ACIDS))
+            i += 1  # move past inserted amino acid
+        elif mutation_chance < 0.30:
+            # Substitution
+            original = seq[i]
+            new = random.choice([aa for aa in AMINO_ACIDS if aa != original])
+            seq[i] = new
+            i += 1
+        else:
+            # No mutation
+            i += 1
+
+    return ''.join(seq)
+
+
+"""
+Generates a list of mutated amino acid sequences.
+
+Args:
+    seq: Original amino acid sequence.
+    num_mutants: Number of mutants to generate.
+
+Returns:
+    List of mutated sequences (strings).
+"""
+def generate_mutants(seq: str, num_mutants: int) -> list[str]:
+    mutants = set()
+    while len(mutants) < num_mutants:
+        mutant = mutate_sequence(seq)
+        # Ensure the mutant is actually different
+        if mutant != seq:
+            mutants.add(mutant)
+    return list(mutants)
