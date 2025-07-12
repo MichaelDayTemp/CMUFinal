@@ -6,6 +6,10 @@ from tqdm import tqdm
 from Bio.Blast import NCBIWWW, NCBIXML
 import requests
 import random
+from Bio import Entrez, SeqIO
+import requests
+
+Entrez.email = "your.email@example.com"
 
 AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
 
@@ -47,6 +51,20 @@ def get_top_keys(data: dict[str, float], x: int) -> list[str]:
     return [key for key, _ in sorted_items[:x]]
 
 #fetches fp properties from dpbase and returns them as a map
+
+def get_protein_sequence_from_name(hit_def):
+    # Try to extract accession ID from hit_def (usually the first word)
+    accession = hit_def.split()[0]
+
+    try:
+        handle = Entrez.efetch(db="protein", id=accession, rettype="fasta", retmode="text")
+        record = SeqIO.read(handle, "fasta")
+        return str(record.seq)
+    except Exception as e:
+        print(f"Failed to retrieve sequence for {hit_def}: {e}")
+        return None
+
+
 def get_fp_properties_from_name(fp_name):
     query = """
     {{
@@ -61,7 +79,20 @@ def get_fp_properties_from_name(fp_name):
     }}
     """
     response = requests.post('https://www.fpbase.org/graphql/', json={'query': query})
-    return response.json()['data']['fluorescentProtein']
+    result = response.json()['data']['fluorescentProtein']
+
+    if result is None:
+        # Return default dummy values for unknown proteins
+        return {
+            "name": fp_name,
+            "brightness": 0.01,
+            "quantumYield": 0.001,
+            "extinctionCoefficient": 1,
+            "excitationMax": -1,
+            "emissionMax": -1
+        }
+
+    return result
 
 #returns map of fittnesses of a given amount of fp mutants 
 def evaluate_gfp_variants(fp_variants):
@@ -118,7 +149,7 @@ if __name__ == "__main__":
         mutant_gfp_names.clear()
 
         for sequence in top_keys:
-            new_mutant_sequences += generate_mutants(sequence, num_mutants)
+            new_mutant_sequences += generate_mutants(get_protein_sequence_from_name(sequence), num_mutants)
 
         for sequence in new_mutant_sequences:
             result_handle = NCBIWWW.qblast("blastp", "nr", sequence)
